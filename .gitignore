@@ -1,0 +1,51 @@
+# OS/editor junk
+.DS_Store
+Thumbs.db
+desktop.ini
+.vscode/
+.idea/
+
+# Python / virtualenv caches
+__pycache__/
+.pytest_cache/
+.mypy_cache/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+*.egg-info/
+.eggs/
+.venv/
+venv/
+env/
+
+# Secrets / env files
+.env
+*.env
+
+# dbt artifacts (compiled/logs/packages)
+dbt/target/
+dbt/logs/
+dbt/dbt_packages/
+dbt/.dbt_tmp/
+dbt/.user.yml
+dbt/manifest.json
+dbt/run_results.json
+dbt/graph.gpickle
+
+# Airflow runtime
+airflow/logs/
+airflow/airflow.db
+airflow/*.pid
+airflow/*.sqlite
+airflow/__pycache__/
+airflow/dags/__pycache__/
+airflow/plugins/__pycache__/
+
+# Database dumps/backups
+*.bak
+
+# General logs
+*.log
+
+DATAOPS_PROJECT_REQUIREMENTS.md
