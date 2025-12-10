@@ -82,48 +82,52 @@ with DAG(
 ) as dag:
     dbt_deps = BashOperator(
         task_id="dbt_deps",
-        bash_command=CMD_PREFIX
-        + f"DBT_PACKAGES_INSTALL_PATH={DBT_PACKAGES_PATH} {DBT_BIN} "
-        + "deps",
+        bash_command=(
+            CMD_PREFIX
+            + f"DBT_PACKAGES_INSTALL_PATH={DBT_PACKAGES_PATH} {DBT_BIN} "
+            + "deps"
+        ),
         env=DEFAULT_ENV,
     )
 
     dbt_run_bronze = BashOperator(
         task_id="dbt_run_bronze",
-        bash_command=CMD_PREFIX
-        + f"DBT_PACKAGES_INSTALL_PATH={DBT_PACKAGES_PATH} {DBT_BIN} "
-        + "run --select path:models/bronze",
+        bash_command=(
+            CMD_PREFIX
+            + f"DBT_PACKAGES_INSTALL_PATH={DBT_PACKAGES_PATH} {DBT_BIN} "
+            + "run --select path:models/bronze"
+        ),
         env=DEFAULT_ENV,
     )
 
     dbt_run_silver = BashOperator(
         task_id="dbt_run_silver",
-        bash_command=CMD_PREFIX
-        + f"DBT_PACKAGES_INSTALL_PATH={DBT_PACKAGES_PATH} {DBT_BIN} "
-        + "run --select path:models/silver",
+        bash_command=(
+            CMD_PREFIX
+            + f"DBT_PACKAGES_INSTALL_PATH={DBT_PACKAGES_PATH} {DBT_BIN} "
+            + "run --select path:models/silver"
+        ),
         env=DEFAULT_ENV,
     )
 
     dbt_run_gold = BashOperator(
         task_id="dbt_run_gold",
-        bash_command=CMD_PREFIX
-        + f"DBT_PACKAGES_INSTALL_PATH={DBT_PACKAGES_PATH} {DBT_BIN} "
-        + "run --select path:models/gold",
+        bash_command=(
+            CMD_PREFIX
+            + f"DBT_PACKAGES_INSTALL_PATH={DBT_PACKAGES_PATH} {DBT_BIN} "
+            + "run --select path:models/gold"
+        ),
         env=DEFAULT_ENV,
     )
 
     dbt_test = BashOperator(
         task_id="dbt_test",
-        bash_command=CMD_PREFIX
-        + f"DBT_PACKAGES_INSTALL_PATH={DBT_PACKAGES_PATH} {DBT_BIN} "
-        + "test",
+        bash_command=(
+            CMD_PREFIX
+            + f"DBT_PACKAGES_INSTALL_PATH={DBT_PACKAGES_PATH} {DBT_BIN} "
+            + "test"
+        ),
         env=DEFAULT_ENV,
     )
 
-    (
-        dbt_deps
-        >> dbt_run_bronze
-        >> dbt_run_silver
-        >> dbt_run_gold
-        >> dbt_test
-    )
+    dbt_deps >> dbt_run_bronze >> dbt_run_silver >> dbt_run_gold >> dbt_test
