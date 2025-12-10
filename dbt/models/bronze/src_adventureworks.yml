@@ -1,0 +1,59 @@
+version: 2
+
+sources:
+  - name: adventureworks
+    database: AdventureWorks2014
+    schema: Sales
+    description: >
+      Sales schema sources. Expected latency < 24h (warn after 1 day, error after 2 days)
+      aligned with daily ingestion SLA.
+    freshness:
+      warn_after: {count: 10000, period: day}
+      error_after: {count: 20000, period: day}
+    meta:
+      expected_latency_hours: 24
+    tables:
+      - name: SalesOrderHeader
+        description: Contains the sales order header information
+        loaded_at_field: ModifiedDate
+      - name: SalesOrderDetail
+        description: Contains the sales order detail line items
+        loaded_at_field: ModifiedDate
+      - name: Customer
+        description: Contains customer information
+        loaded_at_field: ModifiedDate
+
+  - name: adventureworks_production
+    database: AdventureWorks2014
+    schema: Production
+    description: >
+      Production schema sources. Demo data may be static; allow relaxed freshness to avoid false
+      alerts in lab. Adjust tighter in real environments.
+    freshness:
+      warn_after: {count: 10000, period: day}
+      error_after: {count: 20000, period: day}
+    meta:
+      expected_latency_hours: 24
+    tables:
+      - name: Product
+        description: Contains product information
+        loaded_at_field: ModifiedDate
+      - name: ProductSubcategory
+        description: Contains product subcategory information
+        loaded_at_field: ModifiedDate
+
+  - name: adventureworks_person
+    database: AdventureWorks2014
+    schema: Person
+    description: >
+      Person schema sources. Demo data may be static; allow relaxed freshness to avoid false alerts
+      in lab. Adjust tighter in real environments.
+    freshness:
+      warn_after: {count: 10000, period: day}
+      error_after: {count: 20000, period: day}
+    meta:
+      expected_latency_hours: 24
+    tables:
+      - name: Person
+        description: Contains person information
+        loaded_at_field: ModifiedDate 
