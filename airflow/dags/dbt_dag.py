@@ -1,70 +1,129 @@
+"""DAG orchestration for DBT: bronze -> silver -> gold with tests."""
+
 from datetime import datetime, timedelta
-import os
+import logging
 
 from airflow import DAG
 from airflow.operators.bash import BashOperator
-from airflow.operators.email import EmailOperator
-from airflow.utils.trigger_rule import TriggerRule
 
-# Tweak these to match your environment
-DBT_CONTAINER = os.getenv("DBT_CONTAINER_NAME", "dbt_airflow_project-dbt-1")
-ALERT_EMAILS = os.getenv("DBT_ALERT_EMAILS", "data-team@example.com").split(",")
+DBT_ROOT = "/opt/airflow/dbt"
+DBT_BIN = "/home/airflow/.local/bin/dbt"
+DEFAULT_PATH = ":".join(
+    [
+        "/home/airflow/.local/bin",
+        "/usr/local/sbin",
+        "/usr/local/bin",
+        "/usr/sbin",
+        "/usr/bin",
+        "/sbin",
+        "/bin",
+    ]
+)
+DBT_PACKAGES_PATH = "/tmp/dbt_packages_cache"
+DBT_TARGET_PATH = "/tmp/dbt_target"
+DEFAULT_ENV = {
+    "DBT_PROFILES_DIR": DBT_ROOT,
+    "PATH": DEFAULT_PATH,
+    "DBT_LOG_PATH": "/tmp/dbt_logs",
+    "DBT_PACKAGES_INSTALL_PATH": DBT_PACKAGES_PATH,
+    "DBT_TARGET_PATH": DBT_TARGET_PATH,
+}
+CMD_PREFIX = (
+    f"mkdir -p /tmp/dbt_logs {DBT_PACKAGES_PATH} {DBT_TARGET_PATH} && "
+    f"cd {DBT_ROOT} && "
+)
+
+
+def notify_failure(context):
+    """Log DBT DAG failure details."""
+    task_id = context.get("task_instance").task_id
+    dag_id = context.get("dag").dag_id
+    execution_date = context.get("execution_date")
+    logging.error(
+        "DBT DAG failed at task=%s, dag=%s, execution=%s",
+        task_id,
+        dag_id,
+        execution_date,
+    )
+
 
 default_args = {
     "owner": "data-eng",
     "depends_on_past": False,
-    "email_on_failure": True,
+    "email_on_failure": False,
     "email_on_retry": False,
     "retries": 2,
-    "retry_delay": timedelta(minutes=10),
-    "retry_exponential_backoff": True,
-    "max_retry_delay": timedelta(minutes=30),
+    "retry_delay": timedelta(minutes=5),
+    "on_failure_callback": notify_failure,
 }
 
+
+doc_md = """
+## Purpose
+- Run DBT by layer: bronze -> silver -> gold.
+- Validate data with dbt test.
+- Include retry and error logging via callback.
+
+## Defaults
+- Schedule: `0 0 * * *` (daily, no catchup).
+- DBT runs inside Airflow container at `/opt/airflow/dbt`.
+"""
+
 with DAG(
-    dag_id="dbt_transform",
-    description="Run dbt models and data quality checks for the SQL Server warehouse",
+    dag_id="dbt_pipeline",
     default_args=default_args,
+    description="Orchestrate DBT models by layer and run tests",
+    schedule_interval="0 0 * * *",
     start_date=datetime(2024, 1, 1),
-    schedule_interval="@daily",
-    is_paused_upon_creation=False,
     catchup=False,
     max_active_runs=1,
-    tags=["dbt", "sqlserver", "daily"],
+    tags=["dbt", "sqlserver", "dataops"],
+    doc_md=doc_md,
 ) as dag:
-    dag.doc_md = """
-    ### dbt_transform
-    Orchestrates the dbt pipeline:
-    - Install packages, run models, then run tests/data quality checks
-    - Daily schedule, single active run, with retries and exponential backoff
-    - Sends an email notification if any task fails
-    """
-
     dbt_deps = BashOperator(
         task_id="dbt_deps",
-        bash_command=f"docker exec {DBT_CONTAINER} dbt deps",
+        bash_command=CMD_PREFIX
+        + f"DBT_PACKAGES_INSTALL_PATH={DBT_PACKAGES_PATH} {DBT_BIN} "
+        + "deps",
+        env=DEFAULT_ENV,
     )
 
-    dbt_run = BashOperator(
-        task_id="dbt_run",
-        bash_command=f"docker exec {DBT_CONTAINER} dbt run --fail-fast",
+    dbt_run_bronze = BashOperator(
+        task_id="dbt_run_bronze",
+        bash_command=CMD_PREFIX
+        + f"DBT_PACKAGES_INSTALL_PATH={DBT_PACKAGES_PATH} {DBT_BIN} "
+        + "run --select path:models/bronze",
+        env=DEFAULT_ENV,
     )
 
-    data_quality_checks = BashOperator(
+    dbt_run_silver = BashOperator(
+        task_id="dbt_run_silver",
+        bash_command=CMD_PREFIX
+        + f"DBT_PACKAGES_INSTALL_PATH={DBT_PACKAGES_PATH} {DBT_BIN} "
+        + "run --select path:models/silver",
+        env=DEFAULT_ENV,
+    )
+
+    dbt_run_gold = BashOperator(
+        task_id="dbt_run_gold",
+        bash_command=CMD_PREFIX
+        + f"DBT_PACKAGES_INSTALL_PATH={DBT_PACKAGES_PATH} {DBT_BIN} "
+        + "run --select path:models/gold",
+        env=DEFAULT_ENV,
+    )
+
+    dbt_test = BashOperator(
         task_id="dbt_test",
-        bash_command=f"docker exec {DBT_CONTAINER} dbt test --fail-fast --store-failures",
+        bash_command=CMD_PREFIX
+        + f"DBT_PACKAGES_INSTALL_PATH={DBT_PACKAGES_PATH} {DBT_BIN} "
+        + "test",
+        env=DEFAULT_ENV,
     )
 
-    notify_failure = EmailOperator(
-        task_id="notify_failure",
-        to=ALERT_EMAILS,
-        subject="Airflow alert: dbt_transform DAG failed",
-        html_content=(
-            "The DAG <b>dbt_transform</b> encountered a failure.<br>"
-            "Please review the Airflow task logs for details."
-        ),
-        trigger_rule=TriggerRule.ONE_FAILED,
+    (
+        dbt_deps
+        >> dbt_run_bronze
+        >> dbt_run_silver
+        >> dbt_run_gold
+        >> dbt_test
     )
-
-    dbt_deps >> dbt_run >> data_quality_checks
-    [dbt_deps, dbt_run, data_quality_checks] >> notify_failure
