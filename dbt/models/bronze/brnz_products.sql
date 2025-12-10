@@ -24,7 +24,7 @@ staged as (
         p.Weight as weight,
         p.DaysToManufacture as days_to_manufacture,
         nullif(ltrim(rtrim(p.ProductLine)), '') as product_line,
-        nullif(ltrim(rtrim(p.Class)), '') as class,
+        nullif(ltrim(rtrim(p.Class)), '') as product_class,
         nullif(ltrim(rtrim(p.Style)), '') as style,
         p.ProductSubcategoryID as product_subcategory_id,
         p.ProductModelID as product_model_id,
