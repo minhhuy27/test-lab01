@@ -4,6 +4,8 @@ config-version: 2
 
 profile: 'dbt_airflow_project'
 
+# Đưa các thư mục sinh ra trong quá trình build (packages/target) ra /tmp để tránh
+# quyền sở hữu từ host bind-mount (Windows -> root trong container) gây lỗi Permission denied.
 model-paths: ["models"]
 analysis-paths: ["analyses"]
 test-paths: ["tests"]
@@ -11,10 +13,11 @@ seed-paths: ["seeds"]
 macro-paths: ["macros"]
 snapshot-paths: ["snapshots"]
 
-target-path: "target"
+packages-install-path: "/tmp/dbt_packages_cache"
+target-path: "/tmp/dbt_target"
 clean-targets:
-  - "target"
-  - "dbt_packages"
+  - "/tmp/dbt_target"
+  - "/tmp/dbt_packages_cache"
 
 models:
   dbt_sqlserver_project:

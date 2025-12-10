@@ -70,7 +70,7 @@ doc_md = """
 """
 
 with DAG(
-    dag_id="dbt_pipeline",
+    dag_id="dbt_transform",
     default_args=default_args,
     description="Orchestrate DBT models by layer and run tests",
     schedule_interval="0 0 * * *",
@@ -83,51 +83,61 @@ with DAG(
     dbt_deps = BashOperator(
         task_id="dbt_deps",
         bash_command=(
-            CMD_PREFIX
+            "set -eux; "
+            + CMD_PREFIX
             + f"DBT_PACKAGES_INSTALL_PATH={DBT_PACKAGES_PATH} {DBT_BIN} "
             + "deps"
         ),
         env=DEFAULT_ENV,
+        execution_timeout=timedelta(minutes=30),
     )
 
     dbt_run_bronze = BashOperator(
         task_id="dbt_run_bronze",
         bash_command=(
-            CMD_PREFIX
+            "set -eux; "
+            + CMD_PREFIX
             + f"DBT_PACKAGES_INSTALL_PATH={DBT_PACKAGES_PATH} {DBT_BIN} "
             + "run --select path:models/bronze"
         ),
         env=DEFAULT_ENV,
+        execution_timeout=timedelta(minutes=30),
     )
 
     dbt_run_silver = BashOperator(
         task_id="dbt_run_silver",
         bash_command=(
-            CMD_PREFIX
+            "set -eux; "
+            + CMD_PREFIX
             + f"DBT_PACKAGES_INSTALL_PATH={DBT_PACKAGES_PATH} {DBT_BIN} "
             + "run --select path:models/silver"
         ),
         env=DEFAULT_ENV,
+        execution_timeout=timedelta(minutes=30),
     )
 
     dbt_run_gold = BashOperator(
         task_id="dbt_run_gold",
         bash_command=(
-            CMD_PREFIX
+            "set -eux; "
+            + CMD_PREFIX
             + f"DBT_PACKAGES_INSTALL_PATH={DBT_PACKAGES_PATH} {DBT_BIN} "
             + "run --select path:models/gold"
         ),
         env=DEFAULT_ENV,
+        execution_timeout=timedelta(minutes=30),
     )
 
     dbt_test = BashOperator(
         task_id="dbt_test",
         bash_command=(
-            CMD_PREFIX
+            "set -eux; "
+            + CMD_PREFIX
             + f"DBT_PACKAGES_INSTALL_PATH={DBT_PACKAGES_PATH} {DBT_BIN} "
             + "test"
         ),
         env=DEFAULT_ENV,
+        execution_timeout=timedelta(minutes=30),
     )
 
     dbt_deps >> dbt_run_bronze >> dbt_run_silver >> dbt_run_gold >> dbt_test
