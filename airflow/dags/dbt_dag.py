@@ -160,3 +160,4 @@ with DAG(
         >> dbt_freshness
         >> dbt_test
     )
+
