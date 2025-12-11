@@ -128,6 +128,18 @@ with DAG(
         execution_timeout=timedelta(minutes=30),
     )
 
+    dbt_freshness = BashOperator(
+        task_id="dbt_source_freshness",
+        bash_command=(
+            "set -eux; "
+            + CMD_PREFIX
+            + f"DBT_PACKAGES_INSTALL_PATH={DBT_PACKAGES_PATH} {DBT_BIN} "
+            + "source freshness"
+        ),
+        env=DEFAULT_ENV,
+        execution_timeout=timedelta(minutes=30),
+    )
+
     dbt_test = BashOperator(
         task_id="dbt_test",
         bash_command=(
@@ -140,4 +152,4 @@ with DAG(
         execution_timeout=timedelta(minutes=30),
     )
 
-    dbt_deps >> dbt_run_bronze >> dbt_run_silver >> dbt_run_gold >> dbt_test
+    dbt_deps >> dbt_run_bronze >> dbt_run_silver >> dbt_run_gold >> dbt_freshness >> dbt_test
