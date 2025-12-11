@@ -95,7 +95,6 @@ docker-compose.yml
   docker compose run --rm dbt dbt run
   docker compose run --rm dbt dbt test
   docker compose run --rm dbt dbt source freshness
-  docker compose exec dbt dbt docs generate
   ```
 - Airflow:
   - Bật DAG `dbt_pipeline`, trigger tay trong UI.
