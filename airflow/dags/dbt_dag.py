@@ -152,4 +152,11 @@ with DAG(
         execution_timeout=timedelta(minutes=30),
     )
 
-    dbt_deps >> dbt_run_bronze >> dbt_run_silver >> dbt_run_gold >> dbt_freshness >> dbt_test
+    (
+        dbt_deps
+        >> dbt_run_bronze
+        >> dbt_run_silver
+        >> dbt_run_gold
+        >> dbt_freshness
+        >> dbt_test
+    )
